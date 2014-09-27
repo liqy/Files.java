@@ -207,6 +207,7 @@ public class Files {
 		BitmapFactory.Options options = new BitmapFactory.Options();
 		options.inJustDecodeBounds = true;
 		try {
+			BitmapFactory.decodeFile(path, options);
 			int sc = sampleSize(options.outWidth, options.outHeight, maxWidth, maxHeight);
 			options.inJustDecodeBounds = false;
 			options.inSampleSize = sc;
