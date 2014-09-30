@@ -42,7 +42,7 @@ public class Files {
 			} finally {
 				try {
 					inputStream.close();
-				} catch (IOException e) {}
+				} catch (IOException e0) {}
 			}
 		}
 		
@@ -71,7 +71,7 @@ public class Files {
 		} finally {
 			try {
 				outStream.close();
-			} catch (IOException e) {}
+			} catch (IOException e0) {}
 		}
 		
 		return res;
