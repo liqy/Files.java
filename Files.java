@@ -6,6 +6,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
@@ -42,9 +44,12 @@ public class Files {
 			} finally {
 				try {
 					inputStream.close();
+					inputStream = null;
 				} catch (IOException e0) {}
 			}
 		}
+		
+		f = null;
 		
 		return content;
 	}
@@ -67,37 +72,57 @@ public class Files {
 				res = true;
 			}
 		} catch(Exception e) {
-			Log.e("saveFileBytes", e.getMessage() + "");
+			e.printStackTrace();
 		} finally {
-			try {
-				outStream.close();
-			} catch (IOException e0) {}
+			if (outStream != null) {
+				try {
+					outStream.close();
+					outStream = null;
+				} catch (IOException e) {}
+			}
 		}
 		
 		return res;
 	}
 	
 	
-	@SuppressLint("NewApi")
-	public static File getExternalCard() {
-		File extCard = new File("/mnt/");
-		if (Environment.isExternalStorageRemovable()) {
-			extCard = Environment.getExternalStorageDirectory().getParentFile();
-		}
-		try {
-			extCard = new File("/mnt/external_sd/");
-			if (extCard.isDirectory()) {
-				return extCard;
-			}
-		} catch(Exception e) { }
-		try {
-			extCard = new File("/mnt/extSdCard/");
-			if (extCard.isDirectory()) {
-				return extCard;
-			}
-		} catch(Exception e) { }
+	/**
+	 * Get list of available external storages
+	 * @return ArrayList of File objects. 
+	 * 	If there no available cards returns empty ArrayList
+	 */
+	public static ArrayList<File> getExternalCard() {
+		ArrayList<File> cards = new ArrayList<File>();
 		
-		return extCard;
+		final String state = Environment.getExternalStorageState();
+		Log.d("getExternalCard", "card state: " + state);
+		
+		if (Environment.MEDIA_MOUNTED.equals(state) || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+		    final File peStorage = Environment.getExternalStorageDirectory();
+		    
+		    final String esRootDir;
+		    if ((esRootDir = peStorage.getParent()) == null) {
+		        cards.add(peStorage);
+		    }
+		    else {
+		        final File esRoot = new File(esRootDir);
+		        final File[] files = esRoot.listFiles();
+		        
+		        for ( final File file : files ) {
+		            if (file.isDirectory() && file.canRead()) {
+		                cards.add(file);
+		            }
+		        }
+		        
+		    }
+		}
+		
+		/*
+		 * public downloads dir: 
+		 * Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+		 * */
+		
+		return cards;
 	}
 	
 	public static String pathFromUri(Uri uri, Context context) {
@@ -202,6 +227,22 @@ public class Files {
 	 * Compress image. 
 	 * @return bitmap for compressed image. 
 	 * */
+	public static Bitmap getPreviewBitmap(byte[] data, int maxWidth, int maxHeight) {
+		Bitmap bitm = null;
+		BitmapFactory.Options options = new BitmapFactory.Options();
+		options.inJustDecodeBounds = true;
+		try {
+			BitmapFactory.decodeByteArray(data, 0, data.length, options);
+			int sc = sampleSize(options.outWidth, options.outHeight, maxWidth, maxHeight);
+			options.inJustDecodeBounds = false;
+			options.inSampleSize = sc;
+			bitm = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return bitm;
+	}
 	public static Bitmap getPreviewBitmap(String path, int maxWidth, int maxHeight) {
 		Bitmap bitm = null;
 		BitmapFactory.Options options = new BitmapFactory.Options();
