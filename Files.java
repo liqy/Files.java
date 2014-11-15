@@ -1,4 +1,4 @@
-package com.test.fullscreen;
+package com.test.full;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -7,20 +7,132 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Base64;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.webkit.MimeTypeMap;
 
 
 public class Files {
+    /**
+	 * Recursive copying folder contents
+	 * @param source - path to source folder
+	 * @param target - path to target folder
+	 * @return true on success
+	 */
+	public static boolean copy(String source, String target) {
+		boolean res = false;
+		source = source.replaceAll("((\\\\)|/)$", "") + "/";
+		target = target.replaceAll("((\\\\)|/)$", "") + "/";
+		Log.d("Files.copy()", source + "\r\n" + target);
+		
+		File f = new File(source);
+		if (f.isDirectory()) {
+			new File(target).mkdirs();
+			
+			String[] files = f.list();
+			for (String file: files) {
+				Files.copy(source + "/" + file, target + "/" + file);
+			}
+			res = true;
+		}
+		else {
+			Files.saveFileBytes(
+					Files.getFileBytes(source),
+					target);
+			res = true;
+		}
+		
+		return res;
+	}
+	
+	/**
+	 * Recursive removing folder or only file
+	 */
+	public static void clearFolder(String path) {
+		path = path.replaceAll("((\\\\)|/)$", "") + "/";
+		File f = new File(path);
+		String[] files = f.list();
+		if (files != null) {
+			for (String name: files) {
+				String file = path + name;
+				File sf = new File(file);
+				if (sf.isDirectory()) {
+					Files.clearFolder(file);
+					sf.delete();
+				}
+				else 
+					sf.delete();
+			}
+		}
+	}
+	
+	/**
+	 * Unzip archive to specified folder
+	 * @param zipFilePath - path to source zip file
+	 * @param targetDir - path to target folder for unzipping
+	 * @return true on success, false on error
+	 */
+	public static boolean unzip(String zipFilePath, String targetDir) {
+		boolean res = false;
+		
+		try {
+			File f = new File(targetDir);
+			if (!f.isDirectory()) {
+				f.mkdirs();
+			}
+			ZipInputStream zin = new ZipInputStream(new FileInputStream(
+					zipFilePath));
+			try {
+				ZipEntry ze = null;
+				while ((ze = zin.getNextEntry()) != null) {
+					String path = targetDir + ze.getName();
+
+					if (ze.isDirectory()) {
+						File unzipFile = new File(path);
+						if (!unzipFile.isDirectory()) {
+							unzipFile.mkdirs();
+						}
+					}
+					else {
+						FileOutputStream fout = new FileOutputStream(path,
+								false);
+						int len = 0;
+						byte[] buffer = new byte[10000];
+						while ((len = zin.read(buffer)) >= 0) {
+							fout.write(buffer, 0, len);
+						}
+						zin.closeEntry();
+						fout.flush();
+						fout.close();
+					}
+					
+					res = true;
+				}
+			} finally {
+				zin.close();
+			}
+		} catch (Exception e) {
+			Log.e("unzip()", e.getMessage() + "");
+			e.printStackTrace();
+		}
+		
+		return res;
+	}
+	
 	/** 
 	 * Get file content as bytes array. 
 	 * @return byte array on success, NULL on error. 
@@ -85,13 +197,12 @@ public class Files {
 		return res;
 	}
 	
-	
 	/**
 	 * Get list of available external storages
 	 * @return ArrayList of File objects. 
 	 * 	If there no available cards returns empty ArrayList
 	 */
-	public static ArrayList<File> getExternalCard() {
+	public static ArrayList<File> getExternalCards() {
 		ArrayList<File> cards = new ArrayList<File>();
 		
 		final String state = Environment.getExternalStorageState();
@@ -116,11 +227,10 @@ public class Files {
 		        
 		    }
 		}
-		
 		/*
 		 * public downloads dir: 
 		 * Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-		 * */
+		 */
 		
 		return cards;
 	}
@@ -149,8 +259,11 @@ public class Files {
 		return path;
 	}
 	public static Uri UriFromPath(String path) {
-		Uri uri;
-		uri = Uri.fromFile(new File(path));
+		Uri uri = null;
+		
+		try {
+			uri = Uri.fromFile(new File(path));
+		} catch (NullPointerException e) { e.printStackTrace(); }
 		
 		return uri;
 	}
@@ -176,14 +289,37 @@ public class Files {
 	
 	
 	/*
-	 * Images 
+	 * Images
+	 * 
 	 */
+	
+	public static String BitmapToBase64(Bitmap bitmap) {
+		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();  
+		bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+		byte[] byteArray = byteArrayOutputStream .toByteArray();
+		String baseStr = "data:image/png;base64," + Base64.encodeToString(byteArray, Base64.DEFAULT);
+		return baseStr;
+	}
+	
+	/**
+	 * Convert pixels metric to appropriate dip
+	 */
+	public static int pxToDIP(int px, Context ctx) {
+		return (int) (px / Resources.getSystem().getDisplayMetrics().density);
+	}
+	
+	/**
+	 * Convert dip to appropriate pixels metric
+	 */
+	public static int dipToPx(int dp, Context ctx) {
+		return (int) (dp * Resources.getSystem().getDisplayMetrics().density);
+	}
+
 	public static boolean saveBitmap(byte[] data, String path, int quality) {
 		boolean res = false;
 		
-		if ((quality > 100) || (quality <= 0)) {
+		if ((quality > 100) || (quality <= 0)) 
 			quality = 100;
-		}
 		
 		Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
 		FileOutputStream out = null;
@@ -199,25 +335,6 @@ public class Files {
 			try {
 				out.close();
 			} catch (IOException e) {}
-		}
-		
-		return res;
-	}
-	
-	public static boolean isImage(String path) {
-		boolean res = false;
-		File f = new File(path);
-		if (f.isFile()) {
-			try {
-				String ext = Files.getExtension(path);
-				if (ext.equals("jpg") || 
-						ext.equals("jpeg") || 
-						ext.equals("gif") || 
-						ext.equals("bmp") || 
-						ext.equals("png")) {
-					res = true;
-				}
-			} catch(Exception e) { Log.e("isImage", e.getMessage() + ""); }
 		}
 		
 		return res;
