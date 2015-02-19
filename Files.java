@@ -1,4 +1,4 @@
-package com.test.full;
+package pro.elandis.client.libs;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -20,14 +20,13 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.TypedValue;
 import android.webkit.MimeTypeMap;
 
 
 public class Files {
-    /**
+	
+	/**
 	 * Recursive copying folder contents
 	 * @param source - path to source folder
 	 * @param target - path to target folder
@@ -126,17 +125,17 @@ public class Files {
 				zin.close();
 			}
 		} catch (Exception e) {
-			Log.e("unzip()", e.getMessage() + "");
+			Log.e("Files.unzip()", e.getMessage() + "");
 			e.printStackTrace();
 		}
 		
 		return res;
 	}
 	
-	/** 
-	 * Get file content as bytes array. 
-	 * @return byte array on success, NULL on error. 
-	 * */
+	/**
+	 * Get file content as bytes array
+	 * @return byte array on success, NULL on error
+	 */
 	public static byte[] getFileBytes(String path) {
 		byte[] content = null;
 		
@@ -152,45 +151,45 @@ public class Files {
 				
 				content = buffer;
 			} catch(Exception e) {
-				Log.e("getFileBytes", e.getMessage() + "");
+				Log.e("Files.getFileBytes()", e.getMessage() + "");
 			} finally {
 				try {
 					inputStream.close();
-					inputStream = null;
 				} catch (IOException e0) {}
+				inputStream = null;
 			}
 		}
-		
-		f = null;
 		
 		return content;
 	}
 	
-	/** 
-	 * Saving bytes array as file. 
-	 * File will be rewrited or created if it does not exist. 
-	 * @return true on success, false on error. 
-	 * */
+	/**
+	 * Saving bytes array as file. <br/>
+	 * File will be rewrited or created if it does not exist
+	 * @return true on success, false on error
+	 */
 	public static boolean saveFileBytes(byte[] bytes, String path) {
 		boolean res = false;
 		
-		FileOutputStream outStream = null;
-		try {
-			outStream = new FileOutputStream(path);
-			outStream.write(bytes);
-			outStream.flush();
-			
-			if ((new File(path)).isFile()) {
-				res = true;
-			}
-		} catch(Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (outStream != null) {
-				try {
-					outStream.close();
+		if ((bytes != null) && (path != null)) {
+			FileOutputStream outStream = null;
+			try {
+				outStream = new FileOutputStream(path);
+				outStream.write(bytes);
+				outStream.flush();
+				
+				if ((new File(path)).isFile()) {
+					res = true;
+				}
+			} catch(Exception e) {
+				e.printStackTrace();
+			} finally {
+				if (outStream != null) {
+					try {
+						outStream.close();
+					} catch (IOException e) {}
 					outStream = null;
-				} catch (IOException e) {}
+				}
 			}
 		}
 		
@@ -199,14 +198,14 @@ public class Files {
 	
 	/**
 	 * Get list of available external storages
-	 * @return ArrayList of File objects. 
-	 * 	If there no available cards returns empty ArrayList
+	 * @return ArrayList of File objects. <br/>
+	 * If there no available cards returns empty ArrayList
 	 */
 	public static ArrayList<File> getExternalCards() {
 		ArrayList<File> cards = new ArrayList<File>();
 		
 		final String state = Environment.getExternalStorageState();
-		Log.d("getExternalCard", "card state: " + state);
+		Log.d("Files.getExternalCard()", "card state: " + state);
 		
 		if (Environment.MEDIA_MOUNTED.equals(state) || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
 		    final File peStorage = Environment.getExternalStorageDirectory();
@@ -230,7 +229,7 @@ public class Files {
 		/*
 		 * public downloads dir: 
 		 * Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-		 */
+		 * */
 		
 		return cards;
 	}
@@ -258,6 +257,7 @@ public class Files {
 		
 		return path;
 	}
+	
 	public static Uri UriFromPath(String path) {
 		Uri uri = null;
 		
@@ -270,18 +270,20 @@ public class Files {
 	
 	@SuppressLint("DefaultLocale")
 	public static String getExtension(String path) {
-		String res = null;
+		String res = "";
 		
 		String extension = MimeTypeMap.getFileExtensionFromUrl(path);
 		if (extension != null) {
 			return extension.toLowerCase();
 		}
 		else {
-			try {
+			if (path != null) {
 				String[] parts = path.split("\\.");
 				int len = parts.length;
-				res = (parts[len - 1]).toLowerCase();
-			} catch(Exception e) { Log.e("getExtension", e.getMessage() + ""); }
+				if (len >= 2) {
+					res = (parts[len - 1]).toLowerCase();
+				}
+			}
 		}
 		
 		return res;
@@ -294,7 +296,7 @@ public class Files {
 	 */
 	
 	public static String BitmapToBase64(Bitmap bitmap) {
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();  
+    	ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();  
 		bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
 		byte[] byteArray = byteArrayOutputStream .toByteArray();
 		String baseStr = "data:image/png;base64," + Base64.encodeToString(byteArray, Base64.DEFAULT);
@@ -302,7 +304,7 @@ public class Files {
 	}
 	
 	/**
-	 * Convert pixels metric to appropriate dip
+     * Convert pixels metric to appropriate dip
 	 */
 	public static int pxToDIP(int px, Context ctx) {
 		return (int) (px / Resources.getSystem().getDisplayMetrics().density);
@@ -314,7 +316,7 @@ public class Files {
 	public static int dipToPx(int dp, Context ctx) {
 		return (int) (dp * Resources.getSystem().getDisplayMetrics().density);
 	}
-
+	
 	public static boolean saveBitmap(byte[] data, String path, int quality) {
 		boolean res = false;
 		
@@ -334,16 +336,40 @@ public class Files {
 		} finally {
 			try {
 				out.close();
-			} catch (IOException e) {}
+			} catch (IOException e) {
+				//e.printStackTrace();
+			}
 		}
 		
 		return res;
 	}
 	
-	/** 
-	 * Compress image. 
-	 * @return bitmap for compressed image. 
-	 * */
+	public static boolean isImage(String path) {
+		boolean res = false;
+		File f = new File(path);
+		if (f.isFile()) {
+			try {
+				String ext = Files.getExtension(path);
+				if (
+						ext.equals("jpg")
+						|| ext.equals("jpeg") 
+						|| ext.equals("gif")
+						|| ext.equals("bmp")
+						|| ext.equals("png")
+					) {
+					res = true;
+				}
+			} catch(Exception e) { Log.e("isImage", e.getMessage() + ""); }
+		}
+		
+		return res;
+	}
+	
+	
+	/**
+	 * Compress image
+	 * @return bitmap for compressed image
+	 */
 	public static Bitmap getPreviewBitmap(byte[] data, int maxWidth, int maxHeight) {
 		Bitmap bitm = null;
 		BitmapFactory.Options options = new BitmapFactory.Options();
@@ -360,6 +386,7 @@ public class Files {
 		
 		return bitm;
 	}
+	
 	public static Bitmap getPreviewBitmap(String path, int maxWidth, int maxHeight) {
 		Bitmap bitm = null;
 		BitmapFactory.Options options = new BitmapFactory.Options();
@@ -378,7 +405,8 @@ public class Files {
 		return bitm;
 	}
 	
-	//Calculating the required degree of image compression: 
+	
+	// Calculate the required degree for image compression: 
 	private static int sampleSize(int width, int height, int maxWidth, int maxHeight) {
 		int sample = 1;
 		if ((width > maxWidth) && (height > maxHeight) && 
