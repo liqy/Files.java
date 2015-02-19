@@ -58,9 +58,6 @@ public class Files {
 		return res;
 	}
 	
-	/**
-	 * Recursive removing folder or only file
-	 */
 	public static void clearFolder(String path) {
 		path = path.replaceAll("((\\\\)|/)$", "") + "/";
 		File f = new File(path);
